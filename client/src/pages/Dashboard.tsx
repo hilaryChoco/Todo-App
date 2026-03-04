@@ -118,14 +118,12 @@ export default function Dashboard() {
 
                                             {/* DATE */}
                                             {task.endDate && (
-                                                <p className="text-blue-600 text-sm mt-1">
-                                                    <div className="flex items-center gap-2 text-blue-600 text-sm mt-1">
-                                                        <Calendar size={16} />
-                                                        <span>
-                                                            Due: {new Date(task.endDate).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                </p>
+                                                <div className="flex items-center gap-2 text-blue-600 text-sm mt-1">
+                                                    <Calendar size={16} />
+                                                    <span>
+                                                        Due: {new Date(task.endDate).toLocaleDateString()}
+                                                    </span>
+                                                </div>
                                             )}
 
                                         </div>
