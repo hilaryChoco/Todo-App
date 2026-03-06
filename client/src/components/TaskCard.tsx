@@ -1,13 +1,23 @@
 import type { Task } from "../types/task";
 import { Pencil, Trash2, Star, Calendar } from "lucide-react";
+import { useState } from "react";
+import DeleteConfirmModal from "./DeleteConfirmModal";
 
 type Props = {
   task: Task;
+  onDelete: (id: number) => void;
+  onEdit: (task: Task) => void;
+  onToggleImportant: (task: Task) => void;
+  onToggleCompleted: (task: Task) => void;
 };
 
-export default function TaskCard({ task }: Props) {
+export default function TaskCard({ task, onDelete, onEdit, onToggleImportant, onToggleCompleted }: Props) {
+
+  const [showDelete, setShowDelete] = useState(false);
+
   return (
-    <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+    <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-sm hover:shadow-md transition hover:-translate-y-0.5
+      animate-taskAppear">
 
       <div className="flex justify-between items-start">
 
@@ -18,8 +28,8 @@ export default function TaskCard({ task }: Props) {
           <input
             type="checkbox"
             checked={task.completed}
-            className="w-5 h-5 mt-1"
-            readOnly
+            className="w-5 h-5 mt-1 cursor-pointer"
+            onChange={() => onToggleCompleted(task)}
           />
 
           <div>
@@ -50,17 +60,29 @@ export default function TaskCard({ task }: Props) {
         </div>
 
         {/* ACTIONS */}
-        <div className="flex gap-3 text-blue-600">
+        <div className="flex gap-3 text-blue-600 [&>button]:hover:scale-110 [&>button]:transition">
 
-          <button>
+          <button
+            onClick={() => onEdit(task)}
+            className="cursor-pointer"
+          >
             <Pencil size={18} />
           </button>
 
-          <button>
-            <Star size={18} />
+          <button
+            onClick={() => onToggleImportant(task)}
+            className="cursor-pointer"
+          >
+            <Star
+              size={18}
+              className={task.important ? "text-orange-500 fill-orange-500" : ""}
+            />
           </button>
 
-          <button>
+          <button
+            onClick={() => setShowDelete(true)}
+            className="cursor-pointer hover:text-red-600 transition"
+          >
             <Trash2 size={18} />
           </button>
 
@@ -95,6 +117,15 @@ export default function TaskCard({ task }: Props) {
         )}
 
       </div>
+
+      <DeleteConfirmModal
+        open={showDelete}
+        onClose={() => setShowDelete(false)}
+        onConfirm={() => {
+          onDelete(task.id);
+          setShowDelete(false);
+        }}
+      />
 
     </div>
   );
