@@ -16,7 +16,7 @@ export default function TaskCard({ task, onDelete, onEdit, onToggleImportant, on
   const [showDelete, setShowDelete] = useState(false);
 
   return (
-    <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-sm hover:shadow-md transition hover:-translate-y-0.5
+    <div className="bg-white border border-blue-200 rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition hover:-translate-y-0.5
       animate-taskAppear">
 
       <div className="flex justify-between items-start">

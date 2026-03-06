@@ -19,7 +19,7 @@ export default function DeleteConfirmModal({ open, onClose, onConfirm }: Props) 
 
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white w-full max-w-md rounded-xl shadow-2xl">
+                className="bg-white w-full max-w-md mx-4 rounded-xl shadow-2xl">
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center border-b px-6 py-4">

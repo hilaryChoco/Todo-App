@@ -61,7 +61,7 @@ export default function CreateTaskModal({ open, onClose, onTaskCreated }: Props)
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50">
 
-            <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl animate-[scaleIn_.2s_ease]">
+            <div className="bg-white w-full max-w-xl mx-4 rounded-xl shadow-2xl animate-[scaleIn_.2s_ease]">
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center border-b px-6 py-4">

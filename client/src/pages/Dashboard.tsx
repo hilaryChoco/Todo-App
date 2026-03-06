@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { getTasks, deleteTask, updateTask } from "../services/api";
 import type { Task } from "../types/task";
-import { Search } from "lucide-react";
+
+import {
+Search,
+User,
+Pencil,
+CheckCircle,
+Star,
+Flag,
+ChevronDown
+} from "lucide-react";
 
 import TaskCard from "../components/TaskCard";
 import CreateTaskModal from "../components/CreateTaskModal";
@@ -9,202 +18,368 @@ import EditTaskModal from "../components/EditTaskModal";
 
 export default function Dashboard() {
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+const [tasks, setTasks] = useState<Task[]>([]);
+const [loading, setLoading] = useState(true);
 
-  const [openModal, setOpenModal] = useState(false);
+const [openModal, setOpenModal] = useState(false);
 
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
+const [editingTask, setEditingTask] = useState<Task | null>(null);
+const [editOpen, setEditOpen] = useState(false);
 
-  const handleTaskCreated = (task: Task) => {
-    setTasks(prev => [task, ...prev]);
-  };
+const [search, setSearch] = useState("");
 
-  const handleEdit = (task: Task) => {
-    setEditingTask(task);
-    setEditOpen(true);
-  };
+const [filter, setFilter] =
+useState<"all" | "active" | "done" | "important">("all");
 
-  const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks(prev =>
-      prev.map(t => (t.id === updatedTask.id ? updatedTask : t))
-    );
-  };
+const [priorityFilter, setPriorityFilter] =
+useState<string | null>(null);
 
-  const handleDeleteTask = async (id: number) => {
-    try {
-      await deleteTask(id);
-      setTasks(prev => prev.filter(task => task.id !== id));
-    } catch (err) {
-      console.error("Delete failed", err);
-    }
-  };
+const [priorityOpen, setPriorityOpen] = useState(false);
+const [dateOpen, setDateOpen] = useState(false);
 
-  const handleToggleImportant = async (task: Task) => {
-    try {
+const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-      const updated = await updateTask(task.id, {
-        important: !task.important
-      });
+const resetExtraFilters = () => {
+setPriorityFilter(null);
+setSelectedDate(null);
+setPriorityOpen(false);
+};
 
-      setTasks(prev =>
-        prev.map(t => (t.id === updated.id ? updated : t))
-      );
+const handleTaskCreated = (task: Task) => {
+setTasks(prev => [task, ...prev]);
+};
 
-    } catch (err) {
-      console.error("Important toggle failed", err);
-    }
-  };
+const handleEdit = (task: Task) => {
+setEditingTask(task);
+setEditOpen(true);
+};
 
-  const handleToggleCompleted = async (task: Task) => {
-    try {
+const handleTaskUpdated = (updatedTask: Task) => {
+setTasks(prev =>
+prev.map(t => (t.id === updatedTask.id ? updatedTask : t))
+);
+};
 
-      const updated = await updateTask(task.id, {
-        completed: !task.completed
-      });
+const handleDeleteTask = async (id: number) => {
+await deleteTask(id);
+setTasks(prev => prev.filter(task => task.id !== id));
+};
 
-      setTasks(prev =>
-        prev.map(t => (t.id === updated.id ? updated : t))
-      );
+const handleToggleImportant = async (task: Task) => {
 
-    } catch (err) {
-      console.error("Completed toggle failed", err);
-    }
-  };
+const updated = await updateTask(task.id, {
+important: !task.important
+});
 
-  useEffect(() => {
+setTasks(prev =>
+prev.map(t => (t.id === updated.id ? updated : t))
+);
 
-    async function load() {
-      try {
-        const data = await getTasks();
-        setTasks(data);
-      } catch (err) {
-        console.error("Load tasks failed", err);
-      } finally {
-        setLoading(false);
-      }
-    }
+};
 
-    load();
+const handleToggleCompleted = async (task: Task) => {
 
-  }, []);
+const updated = await updateTask(task.id, {
+completed: !task.completed
+});
 
-  const sortedTasks = [...tasks].sort(
-    (a, b) => Number(a.completed ?? false) - Number(b.completed ?? false)
-  );
+setTasks(prev =>
+prev.map(t => (t.id === updated.id ? updated : t))
+);
 
-  return (
-    <div className="min-h-screen bg-blue-100 flex justify-center p-10">
+};
 
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-6">
+useEffect(() => {
 
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-6">
+async function load() {
+const data = await getTasks();
+setTasks(data);
+setLoading(false);
+}
 
-          <div className="flex items-center border rounded-lg px-3 py-2 w-1/2">
+load();
 
-            <Search size={18} className="text-gray-400 mr-2" />
+}, []);
 
-            <input
-              placeholder="Search..."
-              className="outline-none w-full"
-            />
+const sortedTasks = [...tasks].sort(
+(a, b) => Number(a.completed ?? false) - Number(b.completed ?? false)
+);
 
-          </div>
+let filteredTasks = [...sortedTasks];
 
-          <button
-            onClick={() => setOpenModal(true)}
-            className="cursor-pointer bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700"
-          >
-            + New Task
-          </button>
+if (filter === "active")
+filteredTasks = filteredTasks.filter(t => !t.completed);
 
-        </div>
+if (filter === "done")
+filteredTasks = filteredTasks.filter(t => t.completed);
 
-        {/* FILTERS */}
-        <div className="flex gap-3 mb-6">
+if (filter === "important")
+filteredTasks = filteredTasks.filter(t => t.important);
 
-          <button className="cursor-pointer bg-blue-600 text-white px-4 py-1 rounded-lg">
-            All
-          </button>
+if (priorityFilter)
+filteredTasks = filteredTasks.filter(t => t.priority === priorityFilter);
 
-          <button className="cursor-pointer bg-gray-100 px-4 py-1 rounded-lg">
-            Active
-          </button>
+if (search) {
 
-          <button className="cursor-pointer bg-gray-100 px-4 py-1 rounded-lg">
-            Done
-          </button>
+const text = search.toLowerCase();
 
-          <button className="cursor-pointer bg-gray-100 px-4 py-1 rounded-lg">
-            Important
-          </button>
+filteredTasks = filteredTasks.filter(task =>
+task.title.toLowerCase().includes(text) ||
+task.description?.toLowerCase().includes(text)
+);
 
-          <button className="cursor-pointer bg-gray-100 px-4 py-1 rounded-lg">
-            Priority
-          </button>
+}
 
-          <button className="cursor-pointer bg-gray-100 px-4 py-1 rounded-lg">
-            Sort
-          </button>
+if (selectedDate) {
 
-        </div>
+const chosen = new Date(selectedDate).getTime();
 
-        {/* TASK LIST */}
-        <div className="space-y-4">
+filteredTasks = filteredTasks.filter(task => {
 
-          {loading && <p>Loading tasks...</p>}
+if (!task.startDate || !task.endDate) return false;
 
-          {!loading &&
-            sortedTasks.map((task, index) => {
+const start = new Date(task.startDate).getTime();
+const end = new Date(task.endDate).getTime();
 
-              const previous = sortedTasks[index - 1];
+return chosen >= start && chosen <= end;
 
-              const showDivider =
-                previous &&
-                !previous.completed &&
-                task.completed;
+});
 
-              return (
-                <div key={task.id}>
+}
 
-                  {showDivider && (
-                    <div className="border-t pt-4 mt-6 text-center text-gray-400 text-sm">
-                      Completed Tasks
-                    </div>
-                  )}
+return (
 
-                  <TaskCard
-                    task={task}
-                    onDelete={handleDeleteTask}
-                    onEdit={handleEdit}
-                    onToggleImportant={handleToggleImportant}
-                    onToggleCompleted={handleToggleCompleted}
-                  />
+<div className="min-h-screen bg-blue-100 flex justify-center p-4 md:p-10">
 
-                </div>
-              );
+<div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-4 md:p-6">
 
-            })}
+{/* HEADER */}
 
-        </div>
+<div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center justify-between mb-6">
 
-      </div>
+<div className="flex items-center border rounded-lg px-3 py-2 w-full md:w-1/2">
 
-      <CreateTaskModal
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        onTaskCreated={handleTaskCreated}
-      />
+<Search size={18} className="text-gray-400 mr-2" />
 
-      <EditTaskModal
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        task={editingTask}
-        onUpdated={handleTaskUpdated}
-      />
+<input
+placeholder="Search..."
+className="outline-none w-full"
+value={search}
+onChange={(e) => setSearch(e.target.value)}
+/>
 
-    </div>
-  );
+</div>
+
+<button
+onClick={() => setOpenModal(true)}
+className="cursor-pointer bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 w-full md:w-auto"
+>
++ New Task
+</button>
+
+</div>
+
+{/* FILTERS */}
+
+<div className="flex flex-wrap gap-2 mb-6 items-center">
+
+<button
+onClick={() => {
+setFilter("all");
+resetExtraFilters();
+}}
+className={`cursor-pointer flex items-center gap-2 px-4 py-1 rounded-lg ${
+filter === "all"
+? "bg-blue-600 text-white"
+: "bg-gray-100"
+}`}
+>
+<User size={16} />
+All
+</button>
+
+<button
+onClick={() => {
+setFilter("active");
+resetExtraFilters();
+}}
+className={`cursor-pointer flex items-center gap-2 px-4 py-1 rounded-lg ${
+filter === "active"
+? "bg-blue-600 text-white"
+: "bg-gray-100"
+}`}
+>
+<Pencil size={16} />
+Active
+</button>
+
+<button
+onClick={() => {
+setFilter("done");
+resetExtraFilters();
+}}
+className={`cursor-pointer flex items-center gap-2 px-4 py-1 rounded-lg ${
+filter === "done"
+? "bg-blue-600 text-white"
+: "bg-gray-100"
+}`}
+>
+<CheckCircle size={16} />
+Done
+</button>
+
+<button
+onClick={() => {
+setFilter("important");
+resetExtraFilters();
+}}
+className={`cursor-pointer flex items-center gap-2 px-4 py-1 rounded-lg ${
+filter === "important"
+? "bg-blue-600 text-white"
+: "bg-gray-100"
+}`}
+>
+<Star size={16} />
+Important
+</button>
+
+{/* PRIORITY */}
+
+<div className="relative">
+
+<button
+onClick={() => setPriorityOpen(!priorityOpen)}
+className="cursor-pointer flex items-center gap-2 px-4 py-1 rounded-lg bg-gray-100"
+>
+<Flag size={16} />
+Priority
+<ChevronDown size={14} />
+</button>
+
+{priorityOpen && (
+
+<div className="absolute mt-1 bg-white shadow rounded-lg p-2 text-sm z-10">
+
+{["urgent","high","medium","low"].map(p => (
+
+<div
+key={p}
+onClick={() => {
+setPriorityFilter(p);
+setPriorityOpen(false);
+}}
+className="cursor-pointer px-2 py-1 hover:bg-gray-100"
+>
+{p}
+</div>
+
+))}
+
+</div>
+
+)}
+
+</div>
+
+{/* DATE FILTER */}
+
+<div className="relative">
+
+<button
+onClick={() => setDateOpen(!dateOpen)}
+className="cursor-pointer flex items-center gap-2 bg-gray-100 px-4 py-1 rounded-lg"
+>
+Date
+<ChevronDown size={14} />
+</button>
+
+{dateOpen && (
+
+<div className="absolute mt-1 bg-white shadow rounded-lg p-3 text-sm z-10">
+
+<input
+type="date"
+className="border rounded px-2 py-1"
+onChange={(e) => {
+setSelectedDate(e.target.value);
+setDateOpen(false);
+}}
+/>
+
+</div>
+
+)}
+
+</div>
+
+</div>
+
+{/* TASK LIST */}
+
+<div className="space-y-4">
+
+{loading && <p>Loading tasks...</p>}
+
+{!loading && filteredTasks.length === 0 && (
+<p className="text-center text-gray-400 py-10">
+No tasks found
+</p>
+)}
+
+{!loading &&
+filteredTasks.map((task, index) => {
+
+const previous = filteredTasks[index - 1];
+
+const showDivider =
+previous &&
+!previous.completed &&
+task.completed;
+
+return (
+
+<div key={task.id}>
+
+{showDivider && (
+
+<div className="border-t pt-4 mt-6 text-center text-gray-400 text-sm">
+Completed Tasks
+</div>
+
+)}
+
+<TaskCard
+task={task}
+onDelete={handleDeleteTask}
+onEdit={handleEdit}
+onToggleImportant={handleToggleImportant}
+onToggleCompleted={handleToggleCompleted}
+/>
+
+</div>
+
+);
+
+})}
+
+</div>
+
+</div>
+
+<CreateTaskModal
+open={openModal}
+onClose={() => setOpenModal(false)}
+onTaskCreated={handleTaskCreated}
+/>
+
+<EditTaskModal
+open={editOpen}
+onClose={() => setEditOpen(false)}
+task={editingTask}
+onUpdated={handleTaskUpdated}
+/>
+
+</div>
+
+);
 }
