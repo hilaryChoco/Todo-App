@@ -10,7 +10,10 @@ app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-});
+  ssl: {
+    rejectUnauthorized: false
+  }
+})
 
 const ALLOWED_PRIORITIES = ["urgent", "high", "medium", "low"] as const;
 type Priority = (typeof ALLOWED_PRIORITIES)[number];
