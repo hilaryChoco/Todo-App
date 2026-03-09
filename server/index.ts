@@ -11,27 +11,63 @@ app.use(express.json());
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
-})
+    rejectUnauthorized: false,
+  },
+});
+
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      completed BOOLEAN DEFAULT false,
+      important BOOLEAN DEFAULT false,
+      priority TEXT DEFAULT 'medium',
+      start_date DATE,
+      start_time TIME,
+      end_date DATE,
+      end_time TIME,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+}
 
 const ALLOWED_PRIORITIES = ["urgent", "high", "medium", "low"] as const;
 type Priority = (typeof ALLOWED_PRIORITIES)[number];
 
-app.get("/health", (req, res) => {
+function mapTask(row: any) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    completed: row.completed,
+    important: row.important,
+    priority: row.priority,
+    startDate: row.start_date,
+    startTime: row.start_time,
+    endDate: row.end_date,
+    endTime: row.end_time,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+app.get("/", (_req, res) => {
   res.json({ ok: true, message: "API is running" });
 });
 
-app.get("/db-test", async (req, res) => {
+app.get("/db-test", async (_req, res) => {
   try {
-    const result = await pool.query("SELECT NOW() AS now");  
+    const result = await pool.query("SELECT NOW() AS now");
     res.json({ ok: true, time: result.rows[0].now });
   } catch (err: any) {
-    res.status(500).json({ ok:false, error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
-app.get("/tasks", async (req, res) => {
+app.get("/tasks", async (_req, res) => {
   try {
     const result = await pool.query(`
       SELECT
@@ -63,27 +99,12 @@ app.get("/tasks", async (req, res) => {
         created_at DESC
     `);
 
-    const tasks = result.rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      completed: row.completed,
-      important: row.important,
-      priority: row.priority,
-      startDate: row.start_date,
-      startTime: row.start_time,
-      endDate: row.end_date,
-      endTime: row.end_time,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
-
+    const tasks = result.rows.map(mapTask);
     res.json(tasks);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 app.post("/tasks", async (req, res) => {
   const {
@@ -97,12 +118,10 @@ app.post("/tasks", async (req, res) => {
     endTime,
   } = req.body;
 
-
   if (!title || String(title).trim() === "") {
     return res.status(400).json({ error: "Title is required" });
   }
 
-  // Normalisation de la priorité et important
   const normalizedPriority: Priority =
     ALLOWED_PRIORITIES.includes(String(priority).toLowerCase() as Priority)
       ? (String(priority).toLowerCase() as Priority)
@@ -111,7 +130,6 @@ app.post("/tasks", async (req, res) => {
   const normalizedImportant =
     typeof important === "boolean" ? important : false;
 
-  // Insertion DB
   try {
     const result = await pool.query(
       `INSERT INTO tasks
@@ -134,7 +152,7 @@ app.post("/tasks", async (req, res) => {
       ]
     );
 
-    return res.status(201).json(result.rows[0]);
+    return res.status(201).json(mapTask(result.rows[0]));
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
@@ -159,7 +177,6 @@ app.patch("/tasks/:id", async (req, res) => {
     endTime,
   } = req.body;
 
-  // Validation légère : priorité si présente
   let normalizedPriority: Priority | null = null;
   if (priority !== undefined) {
     const p = String(priority).toLowerCase();
@@ -171,15 +188,14 @@ app.patch("/tasks/:id", async (req, res) => {
     normalizedPriority = p as Priority;
   }
 
-  // Validation légère : booleans si présents
   if (completed !== undefined && typeof completed !== "boolean") {
     return res.status(400).json({ error: "completed must be a boolean" });
   }
+
   if (important !== undefined && typeof important !== "boolean") {
     return res.status(400).json({ error: "important must be a boolean" });
   }
 
-  // Update partiel avec COALESCE (si valeur non fournie -> on garde l'ancienne)
   try {
     const result = await pool.query(
       `UPDATE tasks
@@ -217,12 +233,11 @@ app.patch("/tasks/:id", async (req, res) => {
       return res.status(404).json({ error: "Task not found" });
     }
 
-    return res.json(result.rows[0]);
+    return res.json(mapTask(result.rows[0]));
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
 });
-
 
 app.delete("/tasks/:id", async (req, res) => {
   const id = Number(req.params.id);
@@ -247,7 +262,19 @@ app.delete("/tasks/:id", async (req, res) => {
   }
 });
 
+const PORT = Number(process.env.PORT) || 3001;
 
-app.listen(3001, () => {
-  console.log("Server running on http://localhost:3001");
-});
+async function startServer() {
+  try {
+    await initDb();
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
