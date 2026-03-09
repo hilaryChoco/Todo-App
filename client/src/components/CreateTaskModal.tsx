@@ -151,7 +151,7 @@ export default function CreateTaskModal({ open, onClose, onTaskCreated }: Props)
 
                         <select
                             value={priority}
-                            onChange={(e) => setPriority(e.target.value)}
+                            onChange={(e) => setPriority(e.target.value as Priority)}
                             className="w-full mt-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="urgent">Urgent</option>

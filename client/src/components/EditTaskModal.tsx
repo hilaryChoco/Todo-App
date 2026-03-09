@@ -46,6 +46,8 @@ export default function EditTaskModal({
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
 
+        if(!task) return;
+
         const cleaned: any = {};
 
         Object.entries(form).forEach(([key, value]) => {
@@ -63,6 +65,7 @@ export default function EditTaskModal({
             console.error(err);
         }
     }
+    
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-[999]">
             <div
